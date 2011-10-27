@@ -3,6 +3,7 @@ import controlP5.*;
 import processing.opengl.*;
 int[] softLight = new int[12];
 int midiIn = -1;
+int midiOut = -1;
 Textlabel midioutlabel;
 Textlabel midiinlabel;
 Textlabel programlabel;
@@ -94,8 +95,15 @@ void programs(int theID) {
   println("a radio event.");
 }
 
+void midiindevices(int theID) {
+  midiIn = theID;
+  lightArray = new MidiBus(this, midiIn, midiOut); 
+}
+
+
 void midioutdevices(int theID) {
-  lightArray = new MidiBus(this, midiIn, theID); // Create a new MidiBus with no input device and the default Java Sound Synthesizer as the output device.
+  midiOut = theID;
+  lightArray = new MidiBus(this, midiIn, midiOut); // Create a new MidiBus with no input device and the default Java Sound Synthesizer as the output device.
 }
 
 void pauseProgram() {
