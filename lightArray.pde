@@ -158,6 +158,13 @@ class SimpleThread extends Thread {
     mode = m;
   }
  
+ 
+   void MIDILight (int controller, int value) {
+     softLight[controller] = value*2;
+     lightArray.sendControllerChange(0, controller+36, value);
+   }
+   
+   
   void run () {
     while (running) {
       if (!paused)
@@ -165,71 +172,65 @@ class SimpleThread extends Thread {
         if (mode == 0) {
             for (double i=0; i<3.14; i=i+0.1)
                 {
-                  for (int j=36; j<48; j++)
+                  for (int j=0; j<12; j++)
                   {
                     double osc = Math.sin(i)*127;
                     int value = (int)osc;
-                    softLight[j-36] = value*2;
-                    lightArray.sendControllerChange(0, j, value); 
+                    MIDILight(j, value);
                   }
                   delay(30);
                   
                 }
                 for (double i=3.14; i>=0; i=i-0.1)
                 {
-                    for (int j=36; j<48; j++)
+                    for (int j=0; j<12; j++)
                     {
                       double osc = Math.sin(i)*127;
                       int value = (int)osc;
-              	    lightArray.sendControllerChange(0, j, value);   
+              	    MIDILight(j, value);
                     }
                     delay(30);
                 }
           }
         else if (mode == 1) {
-              for (int j=36; j<48; j++)
+              for (int j=0; j<12; j++)
               {
-                lightArray.sendControllerChange(0, j, 127); 
-                softLight[j-36] = 255;
+                MIDILight(j, 127);
               }
               mode = 1000;
               }
         
              
         else if (mode == 2) {
-          for (int j=36; j<48; j++)
+          for (int j=0; j<12; j++)
           {
-            lightArray.sendControllerChange(0, j, 0); 
-            softLight[j-36] = 0;
+            MIDILight(j, 0);
           }
           mode = 1000;
           }
           
         else if (mode == 3) {
-          int controller = (int)random(12)+36;
+          int controller = (int)random(12);
           int randomValue = (int)random(127);
-          softLight[controller-36] = randomValue*2;
-    	  lightArray.sendControllerChange(0, controller, (int)random(127));   
+          MIDILight(controller, randomValue);   
           delay(30);
         }
         
         else if (mode == 4) {
             for (int i=0; i<128; i++)
                 {
-                  for (int j=36; j<48; j++)
+                  for (int j=0; j<12; j++)
                   {
-                    softLight[j-36] = i*2;
-                    lightArray.sendControllerChange(0, j, i); 
+                    MIDILight(j, i);
                   }
                   delay(10);
                   
                 }
                 for (int i=127; i>=0; i--)
                 {
-                  for (int j=36; j<48; j++)
+                  for (int j=0; j<12; j++)
                   {
-                    softLight[j-36] = i*2;
-                    lightArray.sendControllerChange(0, j, i); 
+                    MIDILight(j, i);
                   }
                   delay(10);
                 }
