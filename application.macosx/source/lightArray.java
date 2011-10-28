@@ -21,36 +21,50 @@ import java.util.regex.*;
 
 public class lightArray extends PApplet {
 
+/*
+MODES:
+0: oscillate
+1: on
+2: off
+3: random
+4: fade
+6:
+
+If "NOTES->CC" is checked, notes C1 to B1 trigger lights.  lightArray will send this data out to MIDIOut
+as CC data, note corresponds to controller and velocity corresponds to value.
+
+
+
+
+
+
+*/
  //Import the library
 
 
 int[] softLight = new int[12];
-
+int midiIn = -1;
+int midiOut = -1;
+boolean translator = false;
+Textlabel midioutlabel;
+Textlabel midiinlabel;
+Textlabel programlabel;
+Textlabel heading;
+Textlabel options;
+CheckBox optionsbox;
+int[] optionsArray = new int[10];
 
 MidiBus lightArray; // The MidiBus
 ControlP5 controlP5;
 SimpleThread MIDIThread;
 
 public void setup() {
-	size(800,600, OPENGL);
+	size(490,260, OPENGL);
 	background(0);
         smooth();
-        // set up GUI
-        controlP5 = new ControlP5(this);
-        Radio programs = controlP5.addRadio("programs",50,160);
-        programs.deactivateAll();
-        programs.add("on", 1);
-        programs.add("off", 2);
-        programs.add("oscillate", 0);
-        programs.add("random", 3);
-        
-        // set up oscillator
+        GUISetup();
         MIDIThread = new SimpleThread("midi");
         MIDIThread.start();
-        
-
-	MidiBus.list(); // List all available Midi devices on STDOUT. This will show each device's index and name.
-	lightArray = new MidiBus(this, -1, "Bus 1"); // Create a new MidiBus with no input device and the default Java Sound Synthesizer as the output device.
         int[] light = new int[12];
         for (int k=0; k<11; k++)
         {
@@ -58,14 +72,74 @@ public void setup() {
         }
 }
 
+public void GUISetup() {
+  // set up GUI
+  String[] outputs = MidiBus.availableOutputs();
+  String[] inputs = MidiBus.availableInputs();
+  
+  controlP5 = new ControlP5(this);
+  programlabel = controlP5.addTextlabel("programlabel", "Programs", 350, 65);
+  Radio programs = controlP5.addRadio("programs",350,80);
+  programs.deactivateAll();
+  programs.add("on", 1);
+  programs.add("off", 2);
+  programs.add("oscillate", 0);
+  programs.add("fade", 4);
+  programs.add("random", 3);
+  
+  midioutlabel = controlP5.addTextlabel("midioutlabel", "MIDI Outputs", 200, 65);
+  Radio midioutdevices = controlP5.addRadio("midioutdevices",200,80);
+  midioutdevices.deactivateAll();
+  for (int i=0; i<(outputs.length-1); i++) {
+    midioutdevices.add(outputs[i], i);
+  }
+  
+  midiinlabel = controlP5.addTextlabel("midiinlabel", "MIDI Inputs", 100, 65);
+  Radio midiindevices = controlP5.addRadio("midiindevices",100,80);
+  midiindevices.deactivateAll();
+  for (int i=0; i<(inputs.length-1); i++) {
+    midiindevices.add(inputs[i], i);
+  }
+  
+  options = controlP5.addTextlabel("options", "Options", 10, 65);
+  optionsbox = controlP5.addCheckBox("optionsbox",10,80);
+  optionsbox.setItemsPerRow(3);
+  optionsbox.setSpacingColumn(30);
+  optionsbox.setSpacingRow(10); 
+  optionsbox.addItem("notes -> cc",0);
+  
+  heading = controlP5.addTextlabel("heading", "grmnygrmny.lightarray", 200, 20);
+}
+  
+
 public void draw() {
   stroke(255);
   for (int l=0; l<12; l++) {
     fill(softLight[l]);
-    rect(10+(l*40), 10, 30, 30);
+    rect(10+(l*40), 200, 30, 30);
   }
+  midioutlabel.draw(this);
+  midiinlabel.draw(this);
+  programlabel.draw(this);
         
 }
+
+public void controlEvent(ControlEvent theEvent) {
+  if(theEvent.isGroup()) {
+    if (theEvent.group().name() == "optionsbox") {
+      for(int i=0;i<theEvent.group().arrayValue().length;i++) {
+        optionsArray[i] = (int)theEvent.group().arrayValue()[i];
+      }
+      if (optionsArray[0] == 1) {
+        translator = true;
+      }
+      else {
+        translator = false;
+      }
+    }
+  }
+}
+
 
 public void programs(int theID) {
   switch(theID) {
@@ -81,21 +155,42 @@ public void programs(int theID) {
     case(3):
       MIDIThread.mode(3); // random mode
       break;  
+    case(4):
+      MIDIThread.mode(4); // random mode
+      break; 
   }
-  println("a radio event.");
 }
 
-public void pauseProgram() {
-if (MIDIThread.running == true) {
-      MIDIThread.pause();
-    }
+public void midiindevices(int theID) {
+  midiIn = theID;
+  lightArray = new MidiBus(this, midiIn, midiOut); 
 }
 
-public void unpauseProgram() {
-if (MIDIThread.running == false) {
-      MIDIThread.unpause();
-    }
+
+public void midioutdevices(int theID) {
+  midiOut = theID;
+  lightArray = new MidiBus(this, midiIn, midiOut); // Create a new MidiBus with no input device and the default Java Sound Synthesizer as the output device.
 }
+
+public void controllerChange(int channel, int number, int value) {
+	MIDIThread.MIDILightIn(number, value);
+}
+
+public void noteOn(int channel, int pitch, int velocity) {
+ if (translator) {
+   MIDIThread.MIDILightIn(pitch, velocity);
+ }
+}
+
+public void noteOff(int channel, int pitch, int velocity) {
+ if (translator) {
+   MIDIThread.MIDILightIn(pitch, 0);
+ }	
+}
+
+
+
+
 
 
 class SimpleThread extends Thread {
@@ -130,6 +225,25 @@ class SimpleThread extends Thread {
     mode = m;
   }
  
+ 
+   public void MIDILight (int controller, int value) {
+     if (controller >= 0 && controller <= 12) {
+       softLight[controller] = value*2;
+     }
+     lightArray.sendControllerChange(0, controller+36, value);
+   }
+   
+   
+   public void MIDILightIn (int controller, int value) {
+     if (controller >= 36 && controller <= 47 ) {
+       softLight[controller-36] = value*2;
+     }
+     lightArray.sendControllerChange(0, controller, value);
+   }
+   
+   
+   
+   
   public void run () {
     while (running) {
       if (!paused)
@@ -137,53 +251,75 @@ class SimpleThread extends Thread {
         if (mode == 0) {
             for (double i=0; i<3.14f; i=i+0.1f)
                 {
-                  for (int j=36; j<48; j++)
+                  for (int j=0; j<12; j++)
                   {
                     double osc = Math.sin(i)*127;
                     int value = (int)osc;
-                    softLight[j-36] = value*2;
-                    lightArray.sendControllerChange(0, j, value); 
+                    MIDILight(j, value);
                   }
                   delay(30);
                   
                 }
                 for (double i=3.14f; i>=0; i=i-0.1f)
                 {
-                    for (int j=36; j<48; j++)
+                    for (int j=0; j<12; j++)
                     {
                       double osc = Math.sin(i)*127;
                       int value = (int)osc;
-              	    lightArray.sendControllerChange(0, j, value);   
+              	    MIDILight(j, value);
                     }
                     delay(30);
                 }
           }
         else if (mode == 1) {
-              for (int j=36; j<48; j++)
+              for (int j=0; j<12; j++)
               {
-                lightArray.sendControllerChange(0, j, 127); 
-                softLight[j-36] = 255;
+                MIDILight(j, 127);
               }
               mode = 1000;
               }
         
              
         else if (mode == 2) {
-          for (int j=36; j<48; j++)
+          for (int j=0; j<12; j++)
           {
-            lightArray.sendControllerChange(0, j, 0); 
-            softLight[j-36] = 0;
+            MIDILight(j, 0);
           }
           mode = 1000;
           }
           
         else if (mode == 3) {
-          int controller = (int)random(12)+36;
+          int controller = (int)random(12);
           int randomValue = (int)random(127);
-          softLight[controller-36] = randomValue*2;
-    	  lightArray.sendControllerChange(0, controller, (int)random(127));   
+          MIDILight(controller, randomValue);   
           delay(30);
         }
+        
+        else if (mode == 4) {
+            for (int i=0; i<64; i++)
+                {
+                  for (int j=0; j<12; j++)
+                  {
+                    MIDILight(j, i*2);
+                  }
+                  delay(20);
+                  
+                }
+                for (int i=63; i>=0; i--)
+                {
+                  for (int j=0; j<12; j++)
+                  {
+                    MIDILight(j, i*2);
+                  }
+                  delay(20);
+                }
+          }
+          
+          else {
+            delay(10);
+            //FIX THIS. WITHOUT THIS THE CPU USE GOES THROUGH THE ROOF. NEED A WAY
+            //TO SLEEP THIS THREAD WHEN IT'S NOT IN USE.
+          }
     }
     }
       System.out.println(id + " thread is done!");
