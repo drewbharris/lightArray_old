@@ -141,7 +141,7 @@ void midioutdevices(int theID) {
 }
 
 void controllerChange(int channel, int number, int value) {
-	MIDIThread.MIDILight(number, value);
+	MIDIThread.MIDILightIn(number, value);
 }
 
 
@@ -183,9 +183,21 @@ class SimpleThread extends Thread {
  
  
    void MIDILight (int controller, int value) {
-     softLight[controller] = value*2;
+     if (controller >= 0 && controller <= 12) {
+       softLight[controller] = value*2;
+     }
      lightArray.sendControllerChange(0, controller+36, value);
    }
+   
+   void MIDILightIn (int controller, int value) {
+     if (controller >= 36 && controller <= 47 ) {
+       softLight[controller-36] = value*2;
+     }
+     
+     lightArray.sendControllerChange(0, controller, value);
+   }
+   
+   
    
    
   void run () {
