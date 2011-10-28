@@ -8,7 +8,6 @@ Textlabel midioutlabel;
 Textlabel midiinlabel;
 Textlabel programlabel;
 Textlabel heading;
-//test
 
 
 MidiBus lightArray; // The MidiBus
