@@ -126,7 +126,6 @@ void programs(int theID) {
       MIDIThread.mode(4); // random mode
       break; 
   }
-  println("a radio event.");
 }
 
 void midiindevices(int theID) {
@@ -141,7 +140,7 @@ void midioutdevices(int theID) {
 }
 
 void controllerChange(int channel, int number, int value) {
-	MIDIThread.MIDILight(number, value);
+	MIDIThread.MIDILightIn(number, value);
 }
 
 
@@ -187,7 +186,6 @@ class SimpleThread extends Thread {
        softLight[controller] = value*2;
      }
      lightArray.sendControllerChange(0, controller+36, value);
-     print (controller+" "+value+"\n");
    }
    
    
@@ -195,7 +193,6 @@ class SimpleThread extends Thread {
      if (controller >= 36 && controller <= 47 ) {
        softLight[controller-36] = value*2;
      }
-     println(midiIn+" "+midiOut+"cc:"+controller+" value:"+value+"\n");
      lightArray.sendControllerChange(0, controller, value);
    }
    
