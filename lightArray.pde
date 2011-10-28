@@ -19,6 +19,7 @@ import processing.opengl.*;
 int[] softLight = new int[12];
 int midiIn = -1;
 int midiOut = -1;
+boolean translator = false;
 Textlabel midioutlabel;
 Textlabel midiinlabel;
 Textlabel programlabel;
@@ -80,6 +81,7 @@ void GUISetup() {
   optionsbox.setSpacingColumn(30);
   optionsbox.setSpacingRow(10); 
   optionsbox.addItem("notes -> cc",0);
+  
   heading = controlP5.addTextlabel("heading", "grmnygrmny.lightarray", 200, 20);
 }
   
@@ -101,7 +103,12 @@ void controlEvent(ControlEvent theEvent) {
     if (theEvent.group().name() == "optionsbox") {
       for(int i=0;i<theEvent.group().arrayValue().length;i++) {
         optionsArray[i] = (int)theEvent.group().arrayValue()[i];
-        print (optionsArray[i]);
+      }
+      if (optionsArray[0] == 1) {
+        translator = true;
+      }
+      else {
+        translator = false;
       }
     }
   }
@@ -141,6 +148,18 @@ void midioutdevices(int theID) {
 
 void controllerChange(int channel, int number, int value) {
 	MIDIThread.MIDILightIn(number, value);
+}
+
+void noteOn(int channel, int pitch, int velocity) {
+ if (translator) {
+   MIDIThread.MIDILightIn(pitch, velocity);
+ }
+}
+
+void noteOff(int channel, int pitch, int velocity) {
+ if (translator) {
+   MIDIThread.MIDILightIn(pitch, 0);
+ }	
 }
 
 
