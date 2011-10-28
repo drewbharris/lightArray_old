@@ -1,3 +1,18 @@
+/*
+MODES:
+0: oscillate
+1: on
+2: off
+3: random
+4: fade
+5: midi listener
+6:
+
+
+
+
+
+*/
 import themidibus.*; //Import the library
 import controlP5.*;
 import processing.opengl.*;
@@ -8,7 +23,9 @@ Textlabel midioutlabel;
 Textlabel midiinlabel;
 Textlabel programlabel;
 Textlabel heading;
-
+Textlabel options;
+CheckBox optionsbox;
+int[] optionsArray = new int[10];
 
 MidiBus lightArray; // The MidiBus
 ControlP5 controlP5;
@@ -18,47 +35,54 @@ void setup() {
 	size(490,260, OPENGL);
 	background(0);
         smooth();
-        String[] outputs = MidiBus.availableOutputs();
-        String[] inputs = MidiBus.availableInputs();
-        
-        // set up GUI
-        controlP5 = new ControlP5(this);
-        Radio programs = controlP5.addRadio("programs",300,80);
-        programs.deactivateAll();
-        programs.add("on", 1);
-        programs.add("off", 2);
-        programs.add("oscillate", 0);
-        programs.add("fade", 4);
-        programs.add("random", 3);
-        
-        Radio midioutdevices = controlP5.addRadio("midioutdevices",100,80);
-        midioutdevices.deactivateAll();
-        for (int i=0; i<(outputs.length-1); i++) {
-          midioutdevices.add(outputs[i], i);
-        }
-        
-        Radio midiindevices = controlP5.addRadio("midiindevices",0,80);
-        midiindevices.deactivateAll();
-        for (int i=0; i<(inputs.length-1); i++) {
-          midiindevices.add(inputs[i], i);
-        }
-        
-        // set up oscillator
+        GUISetup();
         MIDIThread = new SimpleThread("midi");
         MIDIThread.start();
-
-	
         int[] light = new int[12];
         for (int k=0; k<11; k++)
         {
           softLight[k] = 0;
         }
-        
-        midioutlabel = controlP5.addTextlabel("midioutlabel", "MIDI Outputs", 100, 65);
-        midiinlabel = controlP5.addTextlabel("midiinlabel", "MIDI Inputs", 0, 65);
-        programlabel = controlP5.addTextlabel("programlabel", "Programs", 300, 65);
-        heading = controlP5.addTextlabel("heading", "grmnygrmny.lightarray", 200, 20);
 }
+
+void GUISetup() {
+  // set up GUI
+  String[] outputs = MidiBus.availableOutputs();
+  String[] inputs = MidiBus.availableInputs();
+  
+  controlP5 = new ControlP5(this);
+  programlabel = controlP5.addTextlabel("programlabel", "Programs", 350, 65);
+  Radio programs = controlP5.addRadio("programs",350,80);
+  programs.deactivateAll();
+  programs.add("on", 1);
+  programs.add("off", 2);
+  programs.add("oscillate", 0);
+  programs.add("fade", 4);
+  programs.add("random", 3);
+  
+  midioutlabel = controlP5.addTextlabel("midioutlabel", "MIDI Outputs", 200, 65);
+  Radio midioutdevices = controlP5.addRadio("midioutdevices",200,80);
+  midioutdevices.deactivateAll();
+  for (int i=0; i<(outputs.length-1); i++) {
+    midioutdevices.add(outputs[i], i);
+  }
+  
+  midiinlabel = controlP5.addTextlabel("midiinlabel", "MIDI Inputs", 100, 65);
+  Radio midiindevices = controlP5.addRadio("midiindevices",100,80);
+  midiindevices.deactivateAll();
+  for (int i=0; i<(inputs.length-1); i++) {
+    midiindevices.add(inputs[i], i);
+  }
+  
+  options = controlP5.addTextlabel("options", "Options", 10, 65);
+  optionsbox = controlP5.addCheckBox("optionsbox",10,80);
+  optionsbox.setItemsPerRow(3);
+  optionsbox.setSpacingColumn(30);
+  optionsbox.setSpacingRow(10); 
+  optionsbox.addItem("notes -> cc",0);
+  heading = controlP5.addTextlabel("heading", "grmnygrmny.lightarray", 200, 20);
+}
+  
 
 void draw() {
   stroke(255);
@@ -72,6 +96,16 @@ void draw() {
         
 }
 
+void controlEvent(ControlEvent theEvent) {
+  if(theEvent.isGroup()) {
+    if (theEvent.group().name() == "optionsbox") {
+      for(int i=0;i<theEvent.group().arrayValue().length;i++) {
+        optionsArray[i] = (int)theEvent.group().arrayValue()[i];
+        print (optionsArray[i]);
+      }
+    }
+  }
+}
 
 
 void programs(int theID) {
@@ -106,20 +140,9 @@ void midioutdevices(int theID) {
   lightArray = new MidiBus(this, midiIn, midiOut); // Create a new MidiBus with no input device and the default Java Sound Synthesizer as the output device.
 }
 
-void pauseProgram() {
-if (MIDIThread.running == true) {
-      MIDIThread.pause();
-    }
+void controllerChange(int channel, int number, int value) {
+	MIDIThread.MIDILight(number, value);
 }
-
-void unpauseProgram() {
-if (MIDIThread.running == false) {
-      MIDIThread.unpause();
-    }
-}
-
-
-
 
 
 
@@ -234,6 +257,12 @@ class SimpleThread extends Thread {
                   }
                   delay(10);
                 }
+          }
+          
+          else {
+            delay(10);
+            //FIX THIS. WITHOUT THIS THE CPU USE GOES THROUGH THE ROOF. NEED A WAY
+            //TO SLEEP THIS THREAD WHEN IT'S NOT IN USE.
           }
     }
     }
