@@ -141,7 +141,7 @@ void midioutdevices(int theID) {
 }
 
 void controllerChange(int channel, int number, int value) {
-	MIDIThread.MIDILightIn(number, value);
+	MIDIThread.MIDILight(number, value);
 }
 
 
@@ -187,13 +187,15 @@ class SimpleThread extends Thread {
        softLight[controller] = value*2;
      }
      lightArray.sendControllerChange(0, controller+36, value);
+     print (controller+" "+value+"\n");
    }
+   
    
    void MIDILightIn (int controller, int value) {
      if (controller >= 36 && controller <= 47 ) {
        softLight[controller-36] = value*2;
      }
-     
+     println(midiIn+" "+midiOut+"cc:"+controller+" value:"+value+"\n");
      lightArray.sendControllerChange(0, controller, value);
    }
    
@@ -252,22 +254,22 @@ class SimpleThread extends Thread {
         }
         
         else if (mode == 4) {
-            for (int i=0; i<128; i++)
+            for (int i=0; i<64; i++)
                 {
                   for (int j=0; j<12; j++)
                   {
-                    MIDILight(j, i);
+                    MIDILight(j, i*2);
                   }
-                  delay(10);
+                  delay(20);
                   
                 }
-                for (int i=127; i>=0; i--)
+                for (int i=63; i>=0; i--)
                 {
                   for (int j=0; j<12; j++)
                   {
-                    MIDILight(j, i);
+                    MIDILight(j, i*2);
                   }
-                  delay(10);
+                  delay(20);
                 }
           }
           
